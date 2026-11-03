@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DrawIO2Go 绘图链路全景图</title>
+<style>
+  :root {
+    --primary: #3388BB;
+    --primary-dark: #1f6b9c;
+    --primary-soft: #e6f2f9;
+    --text: #1c1f23;
+    --text-2: #5a6270;
+    --border: #d9e2ea;
+    --bg: #f4f7fa;
+    --card: #ffffff;
+    --success: #4caf7d;
+    --warn: #e0a63c;
+    --danger: #d8624a;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 22px 60px; }
+
+  header.hero {
+    border-left: 6px solid var(--primary);
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    box-shadow: 0 1px 3px rgba(31,107,156,.10);
+    margin-bottom: 26px;
+  }
+  header.hero h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+  header.hero p { margin: 0; color: var(--text-2); font-size: 14px; max-width: 900px; }
+
+  .section-title {
+    display: flex; align-items: center; gap: 10px;
+    margin: 34px 0 14px; font-size: 17px; font-weight: 700; color: var(--primary-dark);
+  }
+  .section-title .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--primary); }
+
+  /* Flow */
+  .flow {
+    display: flex; flex-wrap: wrap; align-items: stretch; gap: 0;
+    background: var(--card);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 16px;
+  }
+  .flow .col {
+    flex: 1 1 180px; min-width: 150px;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    position: relative;
+  }
+  .flow .col + .col { margin-left: 8px; }
+  .node {
+    width: 100%;
+    background: var(--primary-soft);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+    padding: 12px 12px 10px;
+    font-size: 13px;
+  }
+  .node .n-title { font-weight: 700; color: var(--primary-dark); font-size: 13px; margin-bottom: 2px; }
+  .node .n-sub { color: var(--text-2); font-size: 11.5px; }
+  .node.switch-card {
+    background: #fff7ec;
+    border-color: var(--warn);
+    margin-top: 10px;
+    text-align: left;
+  }
+  .node.switch-card .sw-title { font-weight: 700; font-size: 12px; color: #a9791a; }
+  .node.switch-card ul { margin: 6px 0 0; padding-left: 14px; font-size: 11.5px; color: var(--text-2); }
+  .node.switch-card li { margin-bottom: 3px; }
+  .arrow {
+    align-self: center;
+    color: var(--primary); font-size: 20px; font-weight: 700;
+    margin-top: 40px;
+    min-width: 14px;
+    text-align: center;
+  }
+  @media (max-width: 760px) {
+    .flow { flex-direction: column; }
+    .flow .col { align-items: stretch; }
+    .flow .col + .col { margin-left: 0; margin-top: 6px; }
+    .arrow { transform: rotate(90deg); margin: 4px auto; }
+  }
+
+  /* Switch table */
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; font-size: 13px; }
+  thead th { background: var(--primary-soft); color: var(--primary-dark); text-align: left; padding: 11px 14px; font-weight: 700; border-bottom: 2px solid var(--primary); }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.k { font-weight: 600; white-space: nowrap; }
+  td.status { white-space: nowrap; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .tag.on { background: #e5f4ec; color: var(--success); border: 1px solid #b9e0cc; }
+  .tag.both { background: #e9f1fb; color: var(--primary-dark); border: 1px solid #bcd6e9; }
+  .tag.off { background: #f3f5f7; color: var(--text-2); border: 1px solid var(--border); }
+  .path { font-family: var(--mono); font-size: 11.5px; background: #f0f4f8; padding: 1px 5px; border-radius: 4px; color: var(--primary-dark); }
+
+  .note { background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: var(--radius); padding: 14px 18px; font-size: 13px; color: var(--text-2); margin-top: 16px; }
+  .note b { color: var(--text); }
+  code { font-family: var(--mono); background: #eef2f6; padding: 1px 5px; border-radius: 4px; color: var(--primary-dark); font-size: 12px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 8px 0 4px; font-size: 12.5px; color: var(--text-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .box { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>DrawIO2Go 绘图链路全景图</h1>
+    <p>从「用户发送消息」到「AI 修改 DrawIO 图表并落盘」的完整链路：<b>前端请求组装 → HTTP/BFF 代理 → AI 模型 → 工具调用回传 → 前端执行工具 → 编辑器写入 → 存储</b>。图中标注了所有 <b>开关 / 模块设置</b> 的注入点与影响范围。</p>
+  </header>
+
+  <!-- 阶段1：请求组装 -->
+  <div class="section-title"><span class="dot"></span>阶段一 · 前端请求组装（ChatSidebar / Composer）</div>
+  <div class="flow">
+    <div class="col">
+      <div class="node">
+        <div class="n-title">用户提交</div>
+        <div class="n-sub">submitMessage → useChat.sendMessage</div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">🖼 图片附件</div>
+        <ul>
+          <li>支持 <b>vision</b> 才可发图</li>
+          <li><span class="path">prepareSendMessagesRequest</span> 填充 dataUrl</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">画布上下文注入</div>
+        <div class="n-sub"><span class="path">maybeInjectCanvasContext</span></div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">⬜ 开关 A · 画布上下文</div>
+        <ul>
+          <li><b>开</b>：注入 <code>&lt;drawio_status&gt;</code>、<code>&lt;user_select&gt;</code>（Electron）、<code>&lt;page_scope&gt;</code> 到用户消息</li>
+          <li><b>关</b>：不注入，省 token</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">打包 body</div>
+        <div class="n-sub"><span class="path">DefaultChatTransport</span><br/>schema 序列化 + config</div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">⚙ config 携带</div>
+        <ul>
+          <li><code>isCanvasContextEnabled</code></li>
+          <li><code>isLayoutCheckEnabled</code></li>
+        </ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">工具 Schema</div>
+        <div class="n-sub"><span class="path">buildToolSchemaPayload</span><br/>drawio_read / drawio_edit_batch</div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">🧭 工具集（固定）</div>
+        <ul>
+          <li>只发 <b>schema</b>，后端不执行（<span class="mono">无 execute</span>）</li>
+          <li>由前端 <span class="path">frontend-tools</span> 执行</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 阶段2：后端代理 -->
+  <div class="section-title"><span class="dot"></span>阶段二 · HTTP/BFF 代理（/api/ai-proxy）</div>
+  <div class="flow">
+    <div class="col">
+      <div class="node">
+        <div class="n-title">校验 & 规范化</div>
+        <div class="n-sub"><span class="path">validateRequest</span> → <span class="path">normalizeLLMConfig</span></div>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">模型工厂</div>
+        <div class="n-sub"><span class="path">createModelFromConfig</span></div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">⚙ 开关 C · 供应商 / 模型</div>
+        <ul>
+          <li><code>providerType</code> → 选工厂<br/>openai-reasoning / openai-compatible / deepseek-native / anthropic / gemini</li>
+          <li><code>modelName</code> / <code>apiUrl</code>（供应商自动带默认 URL）</li>
+          <li><code>capabilities</code> 决定 <b>vision</b> 支持</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">Vision 检查 + 图片转换</div>
+        <div class="n-sub"><span class="path">checkVisionSupport</span> → <span class="path">convertImagePartsInMessages</span></div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">⬜ 开关 D · Vision</div>
+        <ul>
+          <li>含图片但模型<b>不支持</b> → 拒绝 400</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">提示词模板注入</div>
+        <div class="n-sub"><span class="path">applyTemplateVariables</span></div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">🎨 开关 B · Skill 配置</div>
+        <ul>
+          <li><code>{{theme}}</code>：主题风格（modern/academic/minimal/custom）</li>
+          <li><code>{{colorTheme}}</code>：配色（default/blue/…/none）</li>
+          <li><code>{{knowledge}}</code>：知识库（general 必选 + basic/uml/aws/…）</li>
+        </ul>
+        <div class="sw-title" style="margin-top:6px">⬜ 开关 A/E· 增强指南</div>
+        <ul>
+          <li><code>{{canvas_context_guide}}</code> ← 开关 A</li>
+          <li><code>{{layout_check_guide}}</code> ← 开关 E</li>
+          <li>仅当 <b>启用</b> 时替换为指南文本，否则空串省 token</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">streamText</div>
+        <div class="n-sub"><span class="path">stopWhen: stepCountIs(maxToolRounds)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 阶段3：工具执行 -->
+  <div class="section-title"><span class="dot"></span>阶段三 · 前端工具执行（useChatToolExecution → frontend-tools）</div>
+  <div class="flow">
+    <div class="col">
+      <div class="node">
+        <div class="n-title">AI 返回 tool-call</div>
+        <div class="n-sub">onToolCall → 入队</div>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">校验 + 执行</div>
+        <div class="n-sub"><span class="path">validateToolInput</span> (zod) → <span class="path">executeToolCall</span></div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">⏱ 超时/中止</div>
+        <ul><li>工具名对应的 <code>TOOL_TIMEOUT_CONFIG</code></li></ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">读图 / 批量编辑</div>
+        <div class="n-sub"><span class="path">executeDrawioReadFrontend</span><br/><span class="path">executeDrawioEditBatchFrontend</span></div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">📄 开关 F · 页面范围</div>
+        <ul>
+          <li>非全选 → 仅操作选中页面，禁止动全局节点</li>
+          <li>MCP 上下文自动跳过过滤</li>
+        </ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">编辑后写回</div>
+        <div class="n-sub"><span class="path">replaceDrawioXML</span><br/>merge 到 DrawIO + 一致性验证 + 存储</div>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">💾 开关 G · 自动版本快照</div>
+        <ul>
+          <li><code>version.autoVersionOnAIEdit</code>（存储设置）</li>
+          <li><b>开</b>：工具执行前建历史版本快照；无主版本则先建 1.0.0，再跳子版本</li>
+        </ul>
+      </div>
+      <div class="node switch-card">
+        <div class="sw-title">⬜ 开关 E · 布局检查</div>
+        <ul>
+          <li><b>开</b>：<span class="path">runLayoutOverlapCheck</span>，重叠时返回 <code>warnings</code> + <code>layout_check</code></li>
+        </ul>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="node">
+        <div class="n-title">回填工具结果</div>
+        <div class="n-sub">addToolResult / submitToolError → 继续下一轮或落盘</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 开关明细表 -->
+  <div class="section-title"><span class="dot"></span>全部开关 / 设置明细与默认值</div>
+  <div class="legend">
+    <span><span class="box" style="background:#e5f4ec;border:1px solid #b9e0cc"></span>默认开启</span>
+    <span><span class="box" style="background:#fff7ec;border:1px solid #e0a63c"></span>有多个选项 / 需要配置</span>
+    <span><span class="box" style="background:#e9f1fb;border:1px solid #bcd6e9"></span>默认关闭或不强制</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:160px">开关 / 设置</th>
+        <th style="width:190px">入口 UI</th>
+        <th style="width:230px">可用值</th>
+        <th>影响链路</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="k">供应商 / 模型 / API URL <span class="tag both">设置</span></td>
+        <td>ModelComboBox</td>
+        <td>openai-reasoning · openai-compatible · deepseek-native · anthropic · gemini；<code>modelName</code>；<code>apiUrl</code>（按供应商标识带默认 URL）</td>
+        <td>决定 <span class="path">createModelFromConfig</span> 选哪个 AI SDK 工厂；<code>capabilities.supportsVision</code> 决定能否发图；影响模型推理表现（推理链 / 工具调用轮次 <code>maxToolRounds</code> 默认 20）。</td>
+      </tr>
+      <tr>
+        <td class="k">Skill · 主题风格 <span class="tag both">设置</span></td>
+        <td>SkillButton</td>
+        <td>modern · academic · minimal · custom（custom 用 <code>customThemePrompt</code>）</td>
+        <td>写入 <code>systemPrompt</code> 的 <code>{{theme}}</code>，控制图表视觉风格提示（配色、形状、连线走线、版式）。</td>
+      </tr>
+      <tr>
+        <td class="k">Skill · 配色主题 <span class="tag both">设置</span></td>
+        <td>SkillButton</td>
+        <td>default · blue · green · warm · cool · grayscale · earth · none</td>
+        <td>写入 <code>{{colorTheme}}</code>，提供 fillColor/strokeColor 配对色板。<b>优先遵从用户自定调色板</b>，否则用所选色板。</td>
+      </tr>
+      <tr>
+        <td class="k">Skill · 知识库 <span class="tag both">设置</span></td>
+        <td>SkillButton</td>
+        <td>general（必选）· basic · misc · uml · aws · azure · gcp · network</td>
+        <td>写入 <code>{{knowledge}}</code>，注入可用图形 ID 与样式映射（形状库 + 云厂商图标）。</td>
+      </tr>
+      <tr>
+        <td class="k">画布上下文 <span class="tag on">默认开</span></td>
+        <td>CanvasContextButton</td>
+        <td>开启 / 关闭</td>
+        <td><b>数据路径</b>：开启则在用户消息注入 <code>&lt;drawio_status&gt;</code>、<code>&lt;user_select&gt;</code>（仅 Electron）、<code>&lt;page_scope&gt;</code>；<b>提示词路径</b>：后端将 <code>{{canvas_context_guide}}</code> 替换为 <code>CANVAS_CONTEXT_GUIDE</code>（教导模型如何理解这些标签）。关闭则两路都为空，省 token。</td>
+      </tr>
+      <tr>
+        <td class="k">布局检查 <span class="tag on">默认开</span></td>
+        <td>CanvasContextButton</td>
+        <td>开启 / 关闭</td>
+        <td><b>提示词路径</b>：后端将 <code>{{layout_check_guide}}</code> 替换为 <code>LAYOUT_CHECK_GUIDE</code>；<b>执行路径</b>：<span class="path">drawio_edit_batch</span> 成功后运行 <span class="path">runLayoutOverlapCheck</span>，检测连线与元素重叠，返回 <code>warnings</code> + <code>layout_check</code>（引导模型改连线而非移节点）。</td>
+      </tr>
+      <tr>
+        <td class="k">页面范围 <span class="tag both">默认全选</span></td>
+        <td>PageSelectorButton</td>
+        <td>多选页面（0 到全部，发送时为空则拦截提示）</td>
+        <td>非全选时：① 注入 <code>&lt;page_scope&gt;</code> 标签到用户消息，提供每页 XPath；② 工具执行经 <span class="path">getAllowedPageIdsOrNull</span> 只操作选中页面，并<b>禁止匹配全局节点</b>（如 &lt;mxfile&gt;）。MCP 场景自动跳过过滤。</td>
+      </tr>
+      <tr>
+        <td class="k">自动版本快照 <span class="tag on">默认开</span></td>
+        <td>VersionSettingsPanel<br/>（存储设置 <code>version.autoVersionOnAIEdit</code>）</td>
+        <td>开启 / 关闭</td>
+        <td>开启时，AI 工具执行前调用 <span class="path">createAutoVersionSnapshot</span> 建历史版本快照。若尚无主版本：先补建默认主版本 1.0.0，并<b>跳过本次子版本创建</b>（避免内容相同触发 4021“无差异”错误）；已有主版本则按 <span class="path">getNextSubVersion</span> 递增子版本。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <b>关键机制提示</b>：本应用是「<b>前端执行工具</b>」架构（v1.2）。后端 <span class="path">/api/ai-proxy</span> 只做代理与提示词组装，<code>toToolSet</code> 刻意不提供 <code>execute</code>，因此工具真正执行发生在浏览器/Electron 渲染进程，由 <span class="path">frontend-tools.ts</span> 操作真实 DrawIO XML。多轮工具调用靠 <code>sendAutomaticallyWhen = lastAssistantMessageIsCompleteWithToolCalls</code> 循环触发，直到 <code>finishReason !== "tool-calls"</code> 或出现致命工具错误。
+  </div>
+
+</div>
+</body>
+</html>
